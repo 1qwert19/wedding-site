@@ -24,6 +24,85 @@
     --line-dark: #2d4537;     /* line on dark bg */
     --shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.45);
   }
+
+  /* ===== PRELOADER ===== */
+  .preloader {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.7s;
+  }
+  .preloader::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(74, 130, 104, 0.18) 0%, transparent 45%),
+      radial-gradient(circle at 80% 90%, rgba(28, 90, 64, 0.16) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .preloader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .preloader-rings {
+    position: relative;
+    width: 90px;
+    height: 90px;
+  }
+  .preloader-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: var(--accent-light);
+    border-right-color: var(--accent-light);
+    animation: preloaderSpin 1.6s linear infinite;
+  }
+  .preloader-ring:nth-child(2) {
+    inset: 14px;
+    border-top-color: transparent;
+    border-right-color: transparent;
+    border-bottom-color: var(--paper);
+    border-left-color: var(--paper);
+    animation: preloaderSpin 2.2s linear infinite reverse;
+    opacity: 0.7;
+  }
+  .preloader-heart {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--accent-light);
+    font-size: 22px;
+    animation: preloaderPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes preloaderSpin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes preloaderPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+  }
+  .preloader-text {
+    margin-top: 28px;
+    font-family: 'Marck Script', 'Brush Script MT', cursive;
+    color: var(--paper);
+    font-size: 22px;
+    opacity: 0;
+    letter-spacing: 1px;
+    animation: preloaderTextFade 2s ease-in-out 0.6s infinite;
+  }
+  @keyframes preloaderTextFade {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.85; }
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body {
@@ -722,6 +801,16 @@
 </head>
 <body>
 
+<!-- PRELOADER -->
+<div class="preloader" id="preloader">
+  <div class="preloader-rings">
+    <div class="preloader-ring"></div>
+    <div class="preloader-ring"></div>
+    <div class="preloader-heart">♡</div>
+  </div>
+  <div class="preloader-text">love story</div>
+</div>
+
 <!-- HIDDEN FORM for Netlify Forms detection (must exist at build time) -->
 <form name="rsvp" data-netlify="true" netlify-honeypot="bot-field" hidden>
   <input type="text" name="fullname">
@@ -1385,6 +1474,27 @@
       submitBtn.textContent = oldText;
     }
   });
+
+  // ===== PRELOADER =====
+  function hidePreloader() {
+    const p = document.getElementById('preloader');
+    if (!p || p.classList.contains('hidden')) return;
+    setTimeout(() => {
+      p.classList.add('hidden');
+      setTimeout(() => { if (p.parentNode) p.parentNode.removeChild(p); }, 800);
+    }, 250);
+  }
+  // Ждём DOM + картинки + шрифты — потом скрываем
+  function startWaitingForLoad() {
+    const loadPromise = (document.readyState === 'complete')
+      ? Promise.resolve()
+      : new Promise(r => window.addEventListener('load', r, { once: true }));
+    const fontsPromise = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    Promise.all([loadPromise, fontsPromise]).then(hidePreloader);
+    // Защитный таймаут — если что-то зависнет, всё равно покажем сайт
+    setTimeout(hidePreloader, 10000);
+  }
+  startWaitingForLoad();
 
   // ===== INIT =====
   applyLang('ru');
